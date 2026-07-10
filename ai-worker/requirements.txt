@@ -1,0 +1,13 @@
+grpcio
+grpcio-tools
+protobuf
+faster-whisper
+numpy
+librosa
+soundfile
+transformers
+torch
+ffmpeg-python
+python-dotenv
+scipy
+deep-translator

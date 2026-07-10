@@ -1,0 +1,2 @@
+ALTER TABLE users ADD COLUMN phone_number VARCHAR(20) UNIQUE;
+ALTER TABLE users ADD COLUMN password_hash VARCHAR(255);

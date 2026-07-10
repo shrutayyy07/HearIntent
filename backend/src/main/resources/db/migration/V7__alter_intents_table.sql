@@ -1,0 +1,1 @@
+ALTER TABLE intents ALTER COLUMN intent TYPE TEXT;

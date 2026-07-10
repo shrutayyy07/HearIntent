@@ -1,0 +1,37 @@
+# Node / Next.js
+frontend/node_modules
+frontend/.next
+frontend/out
+frontend/.env*.local
+
+# Java / Maven
+backend/target
+backend/.mvn
+*.class
+
+# Python
+ai-worker/__pycache__
+ai-worker/**/__pycache__
+ai-worker/*.pyc
+ai-worker/.venv
+ai-worker/venv
+
+# Logs
+*.log
+logs/
+
+# Env files
+.env
+**/.env
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes (local)
+pgdata/

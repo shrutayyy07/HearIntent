@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+package hearintent.speech;
+
+option java_multiple_files = false;
+option java_package = "com.hearintent.backend.grpc";
+option java_outer_classname = "SpeechProto";
+
+// ---------------------------------------------------------------------------
+// SpeechIntelligenceService
+//
+// Bidirectional streaming contract between the Spring Boot backend (client)
+// and the Python AI worker (server). The backend pushes raw PCM audio frames
+// (16kHz, mono, 16-bit signed little-endian) as they arrive from the browser,
+// and the worker streams back partial/final transcription events plus
+// extracted intent payloads as soon as they are available.
+// ---------------------------------------------------------------------------
+service SpeechIntelligenceService {
+  // Bidirectional streaming RPC used for live microphone sessions.
+  rpc StreamAudio(stream AudioChunk) returns (stream SpeechEvent);
+
+  // Unary RPC used for batch processing of an uploaded video/audio file.
+  // The backend extracts/transcodes the file to PCM and sends it as a single
+  // message; the worker replies once full transcription + intent extraction
+  // has completed.
+  rpc ProcessAudioFile(AudioFileRequest) returns (AudioFileResponse);
+
+  // Health check used by the backend's system status panel.
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// A single chunk of raw audio sent from Java -> Python during a live session.
+message AudioChunk {
+  string session_id = 1;
+  bytes pcm_data = 2;        // raw 16-bit PCM, mono
+  int32 sample_rate = 3;     // sample rate of pcm_data, e.g. 16000
+  int64 sequence_number = 4; // monotonically increasing per session
+  bool is_final = 5;         // true on the very last chunk of the session
+  int64 timestamp_ms = 6;    // client-side capture timestamp
+}
+
+// Event streamed back from Python -> Java for a live session.
+message SpeechEvent {
+  string session_id = 1;
+  EventType type = 2;
+  TranscriptionResult transcription = 3;
+  IntentResult intent = 4;
+  ErrorDetail error = 5;
+
+  enum EventType {
+    UNKNOWN = 0;
+    PARTIAL_TRANSCRIPTION = 1;
+    FINAL_TRANSCRIPTION = 2;
+    INTENT_EXTRACTED = 3;
+    ERROR = 4;
+    SESSION_CLOSED = 5;
+  }
+}
+
+message TranscriptionResult {
+  string text = 1;
+  double confidence = 2;
+  double start_time_sec = 3;
+  double end_time_sec = 4;
+  string language = 5;
+  bool is_final = 6;
+  string translated_text = 7;
+}
+
+message IntentResult {
+  string intent = 1;          // e.g. "schedule_meeting"
+  double confidence = 2;
+  string entities_json = 3;   // JSON-encoded map of extracted entities
+  string raw_text = 4;        // the transcript this intent was derived from
+  int64 extracted_at_ms = 5;
+}
+
+message ErrorDetail {
+  string code = 1;
+  string message = 2;
+}
+
+// ---- Batch file processing (used for "upload a video" flow) --------------
+
+message AudioFileRequest {
+  string session_id = 1;
+  bytes pcm_data = 2;       // full file decoded to PCM16 mono by the backend
+  int32 sample_rate = 3;
+  string original_filename = 4;
+  string content_type = 5;  // original mime type, e.g. video/mp4
+}
+
+message AudioFileResponse {
+  string session_id = 1;
+  repeated TranscriptionResult segments = 2;
+  string full_transcript = 3;
+  repeated IntentResult intents = 4;
+  double duration_sec = 5;
+  bool success = 6;
+  string error_message = 7;
+}
+
+// ---- Health check ----------------------------------------------------------
+
+message HealthCheckRequest {
+  string requester = 1;
+}
+
+message HealthCheckResponse {
+  bool healthy = 1;
+  string worker_version = 2;
+  bool whisper_model_loaded = 3;
+  bool intent_model_loaded = 4;
+  double uptime_sec = 5;
+}

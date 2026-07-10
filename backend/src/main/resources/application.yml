@@ -1,0 +1,92 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: hearintent-backend
+
+  r2dbc:
+    url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:hearintent}
+    username: ${DB_USER:hearintent}
+    password: ${DB_PASSWORD:hearintent}
+    pool:
+      enabled: true
+      initial-size: 5
+      max-size: 20
+
+  flyway:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:hearintent}
+    user: ${DB_USER:hearintent}
+    password: ${DB_PASSWORD:hearintent}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+  codec:
+    max-in-memory-size: 200MB
+
+  webflux:
+    multipart:
+      max-in-memory-size: 1MB
+      max-disk-usage-per-part: -1
+
+hearintent:
+  jwt:
+    secret: ${JWT_SECRET:change-this-super-secret-key-in-production-min-256-bits-long}
+    access-token-ttl-minutes: ${JWT_ACCESS_TTL_MIN:60}
+    refresh-token-ttl-days: ${JWT_REFRESH_TTL_DAYS:7}
+    issuer: hearintent-backend
+
+  otp:
+    length: 6
+    ttl-minutes: ${OTP_TTL_MIN:5}
+    resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN_SEC:60}
+    max-attempts: 5
+    mail-from: ${OTP_MAIL_FROM:no-reply@hearintent.app}
+    mock-mode: ${OTP_MOCK_MODE:true}
+
+  rate-limit:
+    otp-requests-per-hour: 5
+    api-requests-per-minute: 120
+
+  grpc:
+    ai-worker-host: ${AI_WORKER_HOST:localhost}
+    ai-worker-port: ${AI_WORKER_PORT:50051}
+    deadline-seconds: 300
+
+  logging:
+    flat-log-dir: ${FLAT_LOG_DIR:/var/log/hearintent/backend}
+
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.hearintent: DEBUG
+    org.springframework.r2dbc: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

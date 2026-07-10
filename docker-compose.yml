@@ -1,0 +1,110 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hearintent-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hearintent
+      POSTGRES_USER: hearintent
+      POSTGRES_PASSWORD: hearintent
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hearintent -d hearintent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hearintent-net
+
+  ai-worker:
+    build:
+      context: ./ai-worker
+      dockerfile: Dockerfile
+    container_name: hearintent-ai-worker
+    restart: unless-stopped
+    environment:
+      GRPC_HOST: 0.0.0.0
+      GRPC_PORT: 50051
+      WHISPER_MODEL_SIZE: small
+      WHISPER_DEVICE: cpu
+      WHISPER_COMPUTE_TYPE: int8
+      WHISPER_LANGUAGE: en
+      INTENT_MODEL_NAME: facebook/bart-large-mnli
+      INTENT_DEVICE: cpu
+      LOG_DIR: /var/log/hearintent
+    ports:
+      - "50051:50051"
+    volumes:
+      - ai_worker_logs:/var/log/hearintent
+      - whisper_model_cache:/root/.cache
+    networks:
+      - hearintent-net
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: hearintent-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-worker:
+        condition: service_started
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: hearintent
+      DB_USER: hearintent
+      DB_PASSWORD: hearintent
+      JWT_SECRET: change-this-super-secret-key-in-production-min-256-bits-long
+      JWT_ACCESS_TTL_MIN: 60
+      JWT_REFRESH_TTL_DAYS: 7
+      OTP_MOCK_MODE: "true"
+      OTP_MAIL_FROM: no-reply@hearintent.app
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      AI_WORKER_HOST: ai-worker
+      AI_WORKER_PORT: 50051
+      FLAT_LOG_DIR: /var/log/hearintent/backend
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+    ports:
+      - "8080:8080"
+    volumes:
+      - backend_logs:/var/log/hearintent/backend
+    networks:
+      - hearintent-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hearintent-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+      NEXT_PUBLIC_WS_BASE_URL: ws://localhost:8080
+    ports:
+      - "3000:3000"
+    networks:
+      - hearintent-net
+
+networks:
+  hearintent-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  ai_worker_logs:
+  backend_logs:
+  whisper_model_cache:
