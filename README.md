@@ -60,6 +60,7 @@ Next.js frontend  ------>  Spring Boot backend
                                                               PostgreSQL
                                                      (users, otps, sessions, speech_sessions,
                                                               transcripts, intents, logs)
+
 ```
 
 ---
