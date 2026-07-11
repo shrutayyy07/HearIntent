@@ -40,26 +40,27 @@ and runs a generative model over each segment to extract the speaker's **intent*
 
 ```
 Browser (mic / file upload)
-       |
-       |  WebSocket (binary PCM + JSON events)   REST (auth, sessions, upload)
-       v
-Next.js frontend  ------>  Spring Boot backend
-                                                                    |
-                                                                    |  gRPC (bidi stream +
-                                                                    |   unary batch RPC)
-                                                                    v
-                                                              Python AI worker
-                                                                    |
-                                                                    |- faster-whisper  → STT
-                                                                    |- deep-translator → translation
-                                                                    |- transformers    → intent + emotion
-                                                                    v
-                                                              back to backend
-                                                                    |
-                                                                    v
-                                                              PostgreSQL
-                                                     (users, otps, sessions, speech_sessions,
-                                                              transcripts, intents, logs)
+        |
+        |  WebSocket (binary PCM + JSON events) / REST (auth, sessions, upload)
+        v
+Next.js frontend
+        |
+        v
+Spring Boot backend
+        |
+        |  gRPC (bidi stream + unary batch RPC)
+        v
+Python AI worker
+        |-- faster-whisper   -> STT
+        |-- deep-translator  -> translation (non-EN -> EN)
+        |-- transformers     -> intent + emotion
+        v
+Spring Boot backend
+        |
+        v
+PostgreSQL
+ (users, otps, sessions, speech_sessions,
+   transcripts, intents, logs)
 
 ```
 
