@@ -43,7 +43,7 @@ Browser (mic / file upload)
        |
        |  WebSocket (binary PCM + JSON events)   REST (auth, sessions, upload)
        v
-Next.js frontend  ---------------------------------------->  Spring Boot backend
+Next.js frontend  ------>  Spring Boot backend
                                                                     |
                                                                     |  gRPC (bidi stream +
                                                                     |   unary batch RPC)
